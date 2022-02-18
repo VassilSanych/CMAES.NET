@@ -1,13 +1,13 @@
 # CMAES.NET
 
-![CMAES.NET](https://buildstats.info/nuget/CMAES.NET)
-
 Covariance Matrix Adaptation Evolution Strategy (CMA-ES) [1] implementation on .NET
 
 This software is a C# implementation of [CyberAgent's CMAES library](https://github.com/CyberAgent/cmaes).
 
 VassilSanych:
+
 Parallel function launch added.
+
 Some fixes. 
 
 ## Usage
