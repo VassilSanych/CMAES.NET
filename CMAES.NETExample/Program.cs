@@ -10,7 +10,7 @@ namespace CMAESnetExample
         static void Main(string[] args)
         {
             double[] initial = new double[] { 0, 0 };
-            CMAESOptimizer cmaoptimizer = new CMAESOptimizer(TestFunctions, initial, 1.5);
+            CmaesOptimizer cmaoptimizer = new CmaesOptimizer(TestFunctions, initial, 1.5);
 
             cmaoptimizer.Optimize();
 

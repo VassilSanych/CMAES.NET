@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using MathNet.Numerics.Distributions;
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.Random;
+// ReSharper disable InconsistentNaming
 
 namespace CMAESnet
 {
@@ -34,6 +35,12 @@ namespace CMAESnet
         private readonly double _tol_sigma;
         private readonly double _tol_C;
 
+        private static double Sqr(double source)
+        {
+	        return source * source;
+        }
+
+
         /// <summary>
         /// A number of dimensions
         /// </summary>
@@ -62,13 +69,13 @@ namespace CMAESnet
         {
             if (!(sigma > 0))
             {
-                throw new ArgumentOutOfRangeException("sigma must be non-zero positive value");
+                throw new ArgumentOutOfRangeException(nameof(sigma),"sigma must be non-zero positive value");
             }
 
             int nDim = mean.Count;
             if (!(nDim > 1))
             {
-                throw new ArgumentOutOfRangeException("The dimension of mean must be larger than 1");
+                throw new ArgumentOutOfRangeException(nameof(nDim),"The dimension of mean must be larger than 1");
             }
 
             int populationSize = 4 + (int)Math.Floor(3 * Math.Log(nDim));  // # (eq. 48)
@@ -78,17 +85,22 @@ namespace CMAESnet
             Vector<double> weightsPrime = Vector<double>.Build.Dense(populationSize);
             for (int i = 0; i < populationSize; i++)
             {
-                weightsPrime[i] = Math.Log((populationSize + 1) / (double)2) - Math.Log(i + 1);
+                weightsPrime[i] = Math.Log((populationSize + 1) / 2d) - Math.Log(i + 1);
             }
 
-            Vector<double> weightsPrimeMuEff = Vector<double>.Build.Dense(weightsPrime.Take(mu).ToArray());
-            double mu_eff = Math.Pow(weightsPrimeMuEff.Sum(), 2) / Math.Pow(weightsPrimeMuEff.L2Norm(), 2);
+            Vector<double> weightsPrimeMuEff = Vector<double>.Build.Dense(
+	            weightsPrime.Take(mu).ToArray());
+            double mu_eff = Sqr(weightsPrimeMuEff.Sum()) 
+                            / Sqr(weightsPrimeMuEff.L2Norm());
             Vector<double> weightsPrimeMuEffMinus = Vector<double>.Build.Dense(weightsPrime.Skip(mu).ToArray());
-            double muEffMinus = Math.Pow(weightsPrimeMuEffMinus.Sum(), 2) / Math.Pow(weightsPrimeMuEffMinus.L2Norm(), 2);
+            double muEffMinus = Sqr(weightsPrimeMuEffMinus.Sum()) 
+                                / Sqr(weightsPrimeMuEffMinus.L2Norm());
 
             int alphacCov = 2;
-            double c1 = alphacCov / (Math.Pow(nDim + 1.3, 2) + mu_eff);
-            double cmu = Math.Min(1 - c1, alphacCov * (mu_eff - 2 + (1 / mu_eff)) / (Math.Pow(nDim + 2, 2) + (alphacCov * mu_eff / 2)));
+            double c1 = alphacCov / (Sqr(nDim + 1.3) + mu_eff);
+            double cmu = Math.Min(
+	            1 - c1, 
+	            alphacCov * (mu_eff - 2 + (1 / mu_eff)) / (Sqr(nDim + 2) + (alphacCov * mu_eff / 2)));
             if (!(c1 <= 1 - cmu))
             {
                 throw new Exception("invalid learning rate for the rank-one update");
@@ -98,7 +110,11 @@ namespace CMAESnet
                 throw new Exception("invalid learning rate for the rank-μ update");
             }
 
-            double minAlpha = Math.Min(1 + (c1 / cmu), Math.Min(1 + (2 * muEffMinus / (mu_eff + 2)), (1 - c1 - cmu) / (nDim * cmu)));
+            double minAlpha = Math.Min(
+	            1 + (c1 / cmu), 
+	            Math.Min(
+		            1 + (2 * muEffMinus / (mu_eff + 2)), 
+		            (1 - c1 - cmu) / (nDim * cmu)));
 
             double positiveSum = weightsPrime.Where(x => x > 0).Sum();
             double negativeSum = Math.Abs(weightsPrime.Where(x => x < 0).Sum());
@@ -137,7 +153,7 @@ namespace CMAESnet
             _d_sigma = d_sigma;
             _cm = cm;
 
-            _chi_n = Math.Sqrt(Dim) * (1.0 - (1.0 / (4.0 * Dim)) + 1.0 / (21.0 * (Math.Pow(Dim, 2))));
+            _chi_n = Math.Sqrt(Dim) * (1.0 - (1.0 / (4.0 * Dim)) + 1.0 / (21.0 * (Sqr(Dim))));
 
             _weights = weights;
 
@@ -203,15 +219,15 @@ namespace CMAESnet
         /// The covariance matrix and step size are recalculated based on the search vectors and their results.
         /// </summary>
         /// <param name="solutions">Tuple's list of search vectors and result values.</param>
-        public void Tell(List<Tuple<Vector<double>, double>> solutions)
+        public void Tell((Vector<double>, double)[] solutions)
         {
-            if (solutions.Count != PopulationSize)
+            if (solutions.Length != PopulationSize)
             {
                 throw new ArgumentException("Must tell popsize-length solutions.");
             }
 
             Generation += 1;
-            Tuple<Vector<double>, double>[] sortedSolutions = solutions.OrderBy(x => x.Item2).ToArray();
+            (Vector<double>, double)[] sortedSolutions = solutions.OrderBy(x => x.Item2).ToArray();
 
             // Sample new population of search_points, for k=1, ..., popsize
             Matrix<double> B = Matrix<double>.Build.Dense(_B.RowCount, _B.ColumnCount);
